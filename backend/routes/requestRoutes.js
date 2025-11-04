@@ -2,16 +2,14 @@ import express from "express";
 import {
   createRequest,
   getDonorRequests,
-  getMyRequests,
-  updateRequestStatus,
+  respondToRequest,
 } from "../controllers/requestController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/", protect, createRequest);
-router.get("/donor", protect, getDonorRequests);
-router.get("/my", protect, getMyRequests);
-router.put("/:id", protect, updateRequestStatus);
+router.get("/", protect, getDonorRequests);
+router.patch("/:id/respond", protect, respondToRequest);
 
 export default router;

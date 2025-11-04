@@ -1,6 +1,9 @@
 import Request from "../models/Request.js";
 import Resource from "../models/Resource.js";
 import User from "../models/User.js";
+import Chat from "../models/Chat.js";
+
+
 
 /**
  * @desc Request a resource
@@ -129,6 +132,50 @@ export const updateRequestStatus = async (req, res) => {
 
     res.json({ message: `Request ${status} successfully.`, request });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// ✅ PATCH /api/requests/:id/respond
+export const respondToRequest = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const { id } = req.params;
+    const donor = req.user;
+
+    const request = await Request.findById(id)
+      .populate("requester")
+      .populate("resource");
+
+    if (!request) return res.status(404).json({ message: "Request not found" });
+
+    // Ensure donor owns this resource
+    if (request.donor.toString() !== donor._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    request.status = status;
+    await request.save();
+
+    // ✅ If accepted, create a chat if it doesn't exist
+    if (status === "accepted") {
+      const existingChat = await Chat.findOne({
+        participants: { $all: [request.requester._id, donor._id] },
+      });
+
+      if (!existingChat) {
+        await Chat.create({
+          participants: [request.requester._id, donor._id],
+          messages: [],
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: `Request ${status} successfully.`,
+      request,
+    });
+  } catch (error) {
+    console.error("Error in respondToRequest:", error);
     res.status(500).json({ message: error.message });
   }
 };

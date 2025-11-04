@@ -20,10 +20,14 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, ArrowLeft } from "lucide-react";
+import { useParams } from "react-router-dom";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+
 const Resources = () => {
+  const { id } = useParams();
+const isEditMode = Boolean(id);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -44,76 +48,94 @@ const Resources = () => {
     }
   }, [navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
+  const token = localStorage.getItem("token");
+  if (!token) {
+    toast({
+      title: "Authentication required",
+      description: "Please log in before posting a resource.",
+      variant: "destructive",
+    });
+    navigate("/auth");
+    return;
+  }
+
+  if (!quantity || !address) {
+    toast({
+      title: "Missing information",
+      description: "Please fill in all required fields.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // ✅ Dynamic URL & Method
+    const url = isEditMode
+      ? `http://localhost:5000/api/resources/${id}`
+      : "http://localhost:5000/api/resources";
+    const method = isEditMode ? "PATCH" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        resourceType,
+        bloodType: resourceType === "blood" ? bloodType : null,
+        quantity,
+        description,
+        address,
+        expiresAt: resourceType === "food" ? expiresAt : null,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to save resource");
+
+    toast({
+      title: isEditMode ? "Resource updated!" : "Resource created!",
+      description: isEditMode
+        ? "Your resource details have been updated successfully."
+        : "Your resource has been posted successfully.",
+    });
+
+    navigate("/dashboard");
+  } catch (error: any) {
+    toast({
+      title: "Error",
+      description: error.message,
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+  
+useEffect(() => {
+  if (isEditMode) {
     const token = localStorage.getItem("token");
-    if (!token) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in before posting a resource.",
-        variant: "destructive",
+    fetch(`http://localhost:5000/api/resources/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setResourceType(data.resourceType);
+        setBloodType(data.bloodType || "");
+        setQuantity(data.quantity);
+        setDescription(data.description || "");
+        setAddress(data.address);
+        setExpiresAt(data.expiresAt ? data.expiresAt.split("T")[0] : "");
       });
-      navigate("/auth");
-      return;
-    }
-
-    if (!quantity || !address) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (resourceType === "blood" && !bloodType) {
-      toast({
-        title: "Blood type required",
-        description: "Please select your blood type.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const res = await fetch("http://localhost:5000/api/resources", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          resourceType,
-          bloodType: resourceType === "blood" ? bloodType : null,
-          quantity,
-          description,
-          address,
-          expiresAt: resourceType === "food" ? expiresAt : null,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to create resource");
-
-      toast({
-        title: "Resource created!",
-        description: "Your resource has been posted successfully.",
-      });
-
-      navigate("/dashboard");
-    } catch (error: any) {
-      toast({
-        title: "Error creating resource",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
+}, [id]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
@@ -243,8 +265,9 @@ const Resources = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? "Creating..." : "Create Resource"}
-                </Button>
+  {loading ? "Saving..." : isEditMode ? "Update Resource" : "Create Resource"}
+</Button>
+
               </div>
             </form>
           </CardContent>
