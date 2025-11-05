@@ -150,12 +150,13 @@ const ChatPage = () => {
                     }`}
                   >
                     <div
-                      className={`p-2 rounded-lg max-w-[70%] shadow-sm ${
-                        isMine
-                          ? "bg-primary text-white"
-                          : "bg-gray-200 text-black"
-                      }`}
-                    >
+  className={`p-3 rounded-2xl max-w-[75%] shadow ${
+    isMine
+      ? "bg-primary text-white rounded-br-none"
+      : "bg-white text-black border border-gray-200 rounded-bl-none"
+  }`}
+>
+
                       <div className="text-sm">
                         <strong>
                           {isMine
