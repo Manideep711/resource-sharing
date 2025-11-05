@@ -20,6 +20,8 @@ import {
   MapPin,
   Clock,
   MessageCircle,
+   Pencil,
+  Trash,
 } from "lucide-react";
 
 type Resource = {
@@ -229,6 +231,52 @@ const Dashboard = () => {
       });
     }
   };
+ // NEW: navigate to resource edit page
+const handleEditResource = (resourceId: string) => {
+  navigate(`/resources/${resourceId}`);
+};
+  // NEW: delete resource with confirmation and refresh
+  const handleDeleteResource = async (resourceId: string) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this resource? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `http://localhost:5000/api/resources/${resourceId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: "Resource Deleted",
+          description: "The resource has been removed.",
+        });
+        await loadUserData();
+      } else {
+        toast({
+          title: "Error deleting resource",
+          description: data.message || "Could not delete resource.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const getResourceIcon = (type: string) => {
     return type === "blood" ? (
@@ -312,17 +360,55 @@ const Dashboard = () => {
     myResources.map((resource) => (
       <Card key={resource._id}>
         <CardHeader>
-          <CardTitle>{resource.resourceType}</CardTitle>
-          <CardDescription>{resource.address}</CardDescription>
+          <div className="flex items-start justify-between w-full">
+            <div>
+              <CardTitle className="capitalize">{resource.resourceType}</CardTitle>
+              <CardDescription>{resource.address}</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="mt-3">
+  <label className="text-sm font-medium mr-2">Change Status:</label>
+  <select
+    value={resource.status}
+    onChange={(e) => handleStatusChange(resource._id, e.target.value)}
+    className="border rounded-md px-2 py-1"
+  >
+    <option value="available">available</option>
+    <option value="unavailable">Unavailable</option>
+  </select>
+</div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <p>Status: {resource.status}</p>
+          <div className="flex gap-2 mt-4">
+            {/* Edit visible to donors (owner) */}
+            {userRole === "donor" && (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => handleEditResource(resource._id)}
+                  className="flex items-center gap-2"
+                >
+                  <Pencil className="h-4 w-4" /> Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleDeleteResource(resource._id)}
+                  className="flex items-center gap-2"
+                >
+                  <Trash className="h-4 w-4" /> Delete
+                </Button>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
     ))
   )}
 </TabsContent>
-
           {/* Nearby Resources */}
           <TabsContent value="nearby" className="space-y-4">
             {nearbyResources.length === 0 ? (

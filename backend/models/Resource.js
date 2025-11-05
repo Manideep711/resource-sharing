@@ -35,7 +35,7 @@ const resourceSchema = new mongoose.Schema(
     },
     status: { 
       type: String, 
-      enum: ["available", "pending", "completed", "cancelled"], 
+      enum: ["available", "pending", "fulfilled", "unavailable"], 
       default: "available" 
     },
   },

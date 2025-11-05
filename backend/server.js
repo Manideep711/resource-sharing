@@ -26,7 +26,7 @@ app.use(
     methods: ["GET", "POST", "PATCH", "DELETE"],
     credentials: true,
   })
-);
+)
 
 app.use(express.json());
 
@@ -43,7 +43,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:8081"], // allow both ports
+    origin: ["http://localhost:5173", "http://localhost:8080"], // allow both ports
     methods: ["GET", "POST"],
     credentials: true,
   },

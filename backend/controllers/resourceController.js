@@ -59,7 +59,21 @@ export const getMyResources = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const getResourceById = async (req, res) => {
+  try {
+    const resource = await Resource.findById(req.params.id);
+    if (!resource) return res.status(404).json({ message: "Resource not found" });
 
+    // Optional: Ensure only the resource owner or an authorized requester can view
+    if (resource.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized to view this resource" });
+    }
+
+    res.status(200).json(resource);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 /**
  * @desc Get all nearby available resources (excluding user’s own)
  * @route GET /api/resources/nearby
@@ -138,6 +152,32 @@ export const getAllResources = async (req, res) => {
   try {
     const resources = await Resource.find().sort({ createdAt: -1 });
     res.json(resources);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+/**
+ * @desc Update resource status
+ * @route PATCH /api/resources/:id/status
+ * @access Donor only
+ */
+export const updateResourceStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const user = req.user;
+
+    const resource = await Resource.findById(id);
+    if (!resource) return res.status(404).json({ message: "Resource not found" });
+
+    if (resource.user.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized to update this resource" });
+    }
+
+    resource.status = status;
+    await resource.save();
+
+    res.status(200).json({ message: "Status updated successfully", resource });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

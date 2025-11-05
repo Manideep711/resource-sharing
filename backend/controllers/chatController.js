@@ -53,3 +53,25 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const getChatById = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.user._id;
+
+    const chat = await Chat.findOne({
+      _id: chatId,
+      participants: userId, // ✅ ensures user is part of this chat
+    })
+      .populate("participants", "full_name email")
+      .populate("messages.sender", "full_name email");
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found or unauthorized" });
+    }
+
+    res.status(200).json(chat);
+  } catch (error) {
+    console.error("Error fetching chat:", error);
+    res.status(500).json({ message: error.message });
+  }
+};

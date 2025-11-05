@@ -65,12 +65,17 @@ export const getDonorRequests = async (req, res) => {
       return res.status(403).json({ message: "Only donors can view received requests." });
     }
 
-    const requests = await Request.find({ donor: donor._id })
+    // ✅ Only fetch requests that are still pending
+    const requests = await Request.find({
+      donor: donor._id,
+      status: "pending",
+    })
       .populate("resource requester", "fullName email phone")
       .sort({ createdAt: -1 });
 
     res.json(requests);
   } catch (error) {
+    console.error("Error fetching donor requests:", error);
     res.status(500).json({ message: error.message });
   }
 };
