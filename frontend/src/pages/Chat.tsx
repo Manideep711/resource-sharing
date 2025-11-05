@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import io from "socket.io-client";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -15,7 +15,7 @@ interface DecodedToken {
 }
 
 interface Message {
-  sender?: { _id: string; full_name?: string; email?: string };
+  sender?: { _id: string; full_name?: string; email?: string; isVerified?: boolean };
   text: string;
   createdAt: string;
 }
@@ -59,17 +59,19 @@ const ChatPage = () => {
 
     socket.emit("joinChat", chatId);
 
-    socket.on("newMessage", (msg: Message) => {
+    const handleNewMessage = (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
-    });
+    };
+
+    socket.on("newMessage", handleNewMessage);
 
     return () => {
-      socket.off("newMessage");
+      socket.off("newMessage", handleNewMessage);
       socket.emit("leaveChat", chatId);
     };
   }, [chatId]);
 
-  // ✅ Send message (do NOT add locally; socket will handle it)
+  // ✅ Send message (handled by socket)
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -83,31 +85,25 @@ const ChatPage = () => {
         },
         body: JSON.stringify({ chatId, text: input }),
       });
-
       setInput("");
     } catch (error) {
       console.error("Send error:", error);
     }
   };
 
-  // ✅ Auto scroll to latest message
+  // ✅ Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ✅ Format time to "hh:mm AM/PM"
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  const formatTime = (timestamp: string) =>
+    new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  // ✅ Optional: Group messages by date (Today, Yesterday, etc.)
   const groupMessagesByDate = (messages: Message[]) => {
     const groups: Record<string, Message[]> = {};
     messages.forEach((msg) => {
       const date = new Date(msg.createdAt);
       const today = new Date();
-
       let label = date.toDateString();
       if (date.toDateString() === today.toDateString()) label = "Today";
       else {
@@ -115,7 +111,6 @@ const ChatPage = () => {
         yesterday.setDate(today.getDate() - 1);
         if (date.toDateString() === yesterday.toDateString()) label = "Yesterday";
       }
-
       if (!groups[label]) groups[label] = [];
       groups[label].push(msg);
     });
@@ -125,56 +120,43 @@ const ChatPage = () => {
   const groupedMessages = groupMessagesByDate(messages);
 
   return (
-<div className="max-w-3xl mx-auto mt-10 w-full">
-  <h2 className="text-2xl font-semibold mb-6 text-center text-primary">Chat</h2>
+    <div className="max-w-3xl mx-auto mt-10 w-full">
+      <h2 className="text-2xl font-semibold mb-6 text-center text-primary">Chat</h2>
 
-  <div className="border rounded-2xl shadow-md p-4 h-[75vh] overflow-y-auto bg-gray-50 relative">
-
+      <div className="border rounded-2xl shadow-md p-4 h-[80vh] overflow-y-auto bg-white relative">
         {messages.length === 0 ? (
-          <p className="text-muted-foreground text-center mt-10">
-            No messages yet.
-          </p>
+          <p className="text-muted-foreground text-center mt-10">No messages yet.</p>
         ) : (
           Object.entries(groupedMessages).map(([date, msgs]) => (
             <div key={date}>
-              {/* Date separator */}
               <div className="text-center text-sm text-gray-500 my-2">{date}</div>
-
               {msgs.map((msg, idx) => {
                 const isMine = msg.sender?._id === userId;
                 return (
-                  <div
-                    key={idx}
-                    className={`mb-2 flex ${
-                      isMine ? "justify-end" : "justify-start"
-                    }`}
-                  >
+                  <div key={idx} className={`mb-2 flex ${isMine ? "justify-end" : "justify-start"}`}>
                     <div
-  className={`p-3 rounded-2xl max-w-[75%] shadow ${
-    isMine
-      ? "bg-primary text-white rounded-br-none"
-      : "bg-white text-black border border-gray-200 rounded-bl-none"
-  }`}
->
-
-                      <div className="text-sm">
-                        <strong>
-                          {isMine
-                            ? "You"
-                            : msg.sender?.full_name ||
-                              msg.sender?.email ||
-                              "User"}
-                        </strong>
+                      className={`p-3 rounded-2xl max-w-[75%] shadow ${
+                        isMine
+                          ? "bg-blue-600 text-white rounded-br-none"
+                          : "bg-gray-100 text-gray-900 border border-gray-200 rounded-bl-none"
+                      }`}
+                    >
+                      <div className="text-sm flex items-center gap-1 font-semibold">
+                        {isMine
+                          ? "You"
+                          : msg.sender?.full_name || msg.sender?.email || "User"}
+                        {msg.sender?.isVerified && (
+                          <span className="text-green-400 text-xs">✔️</span>
+                        )}
                       </div>
                       <div>{msg.text}</div>
                       <div
-  className={`text-[10px] mt-1 text-right ${
-    isMine ? "text-gray-100" : "text-gray-600"
-  }`}
->
-  {formatTime(msg.createdAt)}
-</div>
-
+                        className={`text-[11px] mt-1 text-right font-medium ${
+                          isMine ? "text-blue-100" : "text-gray-500"
+                        }`}
+                      >
+                        {formatTime(msg.createdAt)}
+                      </div>
                     </div>
                   </div>
                 );

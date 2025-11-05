@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { jwtDecode } from "jwt-decode";
+
 import {
   Card,
   CardContent,
@@ -51,11 +53,21 @@ const Auth = () => {
   const [bloodType, setBloodType] = useState("");
   const [organizationName, setOrganizationName] = useState("");
 
-  useEffect(() => {
-    // Check if user already logged in (using JWT in localStorage)
-    const token = localStorage.getItem("token");
-    if (token) navigate("/dashboard");
-  }, [navigate]);
+ useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    try {
+      const decoded: any = jwtDecode(token);
+      if (decoded.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch {
+      localStorage.removeItem("token"); // invalid token cleanup
+    }
+  }
+}, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,13 +89,23 @@ const Auth = () => {
 
       // Store JWT token
       localStorage.setItem("token", data.token);
+toast({
+  title: "Welcome back!",
+  description: "You've successfully logged in.",
+});
 
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in.",
-      });
+// Decode role from token
+try {
+  const decoded: any = jwtDecode(data.token);
+  if (decoded.role === "admin") {
+    navigate("/admin");
+  } else {
+    navigate("/dashboard");
+  }
+} catch {
+  navigate("/dashboard");
+}
 
-      navigate("/dashboard");
     } catch (error: any) {
       toast({
         title: "Login failed",

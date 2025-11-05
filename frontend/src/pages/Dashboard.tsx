@@ -44,6 +44,7 @@ type Profile = {
   blood_type?: string;
   organization_name?: string;
   email?: string;
+  verificationStatus: "none" | "pending" | "verified" | "rejected";
 };
 
 const Dashboard = () => {
@@ -61,6 +62,21 @@ const Dashboard = () => {
   useEffect(() => {
     loadUserData();
   }, []);
+useEffect(() => {
+  const cachedStatus = localStorage.getItem("verificationStatus");
+
+  // If cached status says "pending", show it immediately
+  if (cachedStatus === "pending" && profile) {
+    setProfile((prev) => ({
+      ...prev!,
+      verificationStatus: "pending",
+    }));
+
+    // Clear cache once applied so it won't override later
+    localStorage.removeItem("verificationStatus");
+  }
+}, [profile]);
+
 
   const loadUserData = async () => {
     try {
@@ -330,6 +346,61 @@ const handleEditResource = (resourceId: string) => {
             </CardDescription>
           </CardHeader>
         </Card>
+     {/* ✅ Verification Section */}
+{profile && (
+  <Card className="mb-8 border-l-4 border-l-blue-500 shadow-soft">
+    <CardHeader>
+      <CardTitle>Verification Status</CardTitle>
+      <CardDescription>
+       {(!profile.verificationStatus || profile.verificationStatus === "none") && (
+  <div>
+    <p>You haven’t submitted verification documents yet.</p>
+    <Button
+      className="mt-3 bg-blue-600 text-white"
+      onClick={() => navigate("/verify")}
+    >
+      Upload Verification Document
+    </Button>
+  </div>
+)}
+
+
+        {profile.verificationStatus === "pending" && (
+          <Badge
+            variant="outline"
+            className="text-yellow-600 border-yellow-600"
+          >
+            Pending Review
+          </Badge>
+        )}
+
+        {profile.verificationStatus === "verified" && (
+          <Badge
+            variant="default"
+            className="bg-green-600 text-white flex items-center gap-1"
+          >
+            ✅ Verified
+          </Badge>
+        )}
+
+        {profile.verificationStatus === "rejected" && (
+          <div>
+            <Badge variant="destructive">Rejected</Badge>
+            <p className="text-sm mt-2 text-gray-600">
+              Please re-upload valid documents.
+            </p>
+            <Button
+              className="mt-2 bg-blue-600 text-white"
+              onClick={() => navigate("/verify")}
+            >
+              Re-Upload Document
+            </Button>
+          </div>
+        )}
+      </CardDescription>
+    </CardHeader>
+  </Card>
+)} {/* ✅ closes verification card */}
 
         <Tabs defaultValue="nearby" className="space-y-6">
           <TabsList>

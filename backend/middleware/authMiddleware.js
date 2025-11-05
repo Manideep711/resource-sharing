@@ -10,20 +10,19 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
-
-      // ✅ Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // ✅ Fetch user
       const user = await User.findById(decoded.id).select("-password");
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
 
-      // ✅ Attach user to request
-      req.user = user;
+      // ✅ If the user's email matches ADMIN_EMAIL, mark them as admin
+      if (user.email === process.env.ADMIN_EMAIL) {
+        user.role = "admin";
+      }
 
-      // ✅ Continue
+      req.user = user;
       next();
     } catch (error) {
       console.error("Auth middleware error:", error);
@@ -31,5 +30,14 @@ export const protect = async (req, res, next) => {
     }
   } else {
     return res.status(401).json({ message: "Not authorized, no token provided" });
+  }
+};
+
+// ✅ Admin-only middleware
+export const adminOnly = (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    res.status(403).json({ message: "Access denied. Admins only." });
   }
 };

@@ -10,10 +10,10 @@ export const getDashboardData = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Example: get user's posted resources
+    // User's own resources
     const myResources = await Resource.find({ user: userId });
 
-    // Example: find nearby (simple mock for now)
+    // Simple mock nearby filter
     const nearbyResources = await Resource.find({ status: "available" });
 
     return res.json({
@@ -22,9 +22,14 @@ export const getDashboardData = async (req, res) => {
         role: user.role,
       },
       profile: {
-        full_name: user.fullName, // ✅ match your schema
+        _id: user._id,
+        fullName: user.fullName,
         email: user.email,
         phone: user.phone,
+        role: user.role,
+        isVerified: user.isVerified,
+        verificationStatus: user.verificationStatus,  // ✅ key fix
+        verificationDoc: user.verificationDoc,        // ✅ include uploaded file
       },
       myResources,
       nearbyResources,

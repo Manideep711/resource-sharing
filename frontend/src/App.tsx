@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Resources from "./pages/Resources";
 import NotFound from "./pages/NotFound";
+import VerifyPage from "./pages/VerifyPage";
+import AdminDashboard from "./pages/AdminDashboard";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -24,6 +26,9 @@ const App = () => (
       <Route path="/resources" element={<Resources />} />
     <Route path="/resources/:id" element={<Resources />} /> 
           <Route path="/chat/:chatId" element={<Chat />} />
+          <Route path="/verify" element={<VerifyPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

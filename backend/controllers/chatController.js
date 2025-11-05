@@ -1,11 +1,12 @@
 import Chat from "../models/Chat.js";
 
+// ✅ Get all chats for logged-in user
 export const getMyChats = async (req, res) => {
   try {
     const userId = req.user._id;
     const chats = await Chat.find({ participants: userId })
-      .populate("participants", "full_name email")
-      .populate("messages.sender", "full_name")
+      .populate("participants", "full_name email isVerified verificationStatus")
+      .populate("messages.sender", "full_name email isVerified verificationStatus")
       .sort({ updatedAt: -1 });
 
     res.status(200).json(chats);
@@ -14,6 +15,8 @@ export const getMyChats = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ✅ Send message in a chat
 export const sendMessage = async (req, res) => {
   try {
     const { chatId, text } = req.body;
@@ -38,10 +41,10 @@ export const sendMessage = async (req, res) => {
     chat.messages.push(newMessage);
     await chat.save();
 
-    // Populate sender info
+    // Repopulate sender info including verification
     const populatedChat = await Chat.findById(chatId)
-      .populate("participants", "full_name email")
-      .populate("messages.sender", "full_name");
+      .populate("participants", "full_name email isVerified verificationStatus")
+      .populate("messages.sender", "full_name email isVerified verificationStatus");
 
     // Emit via Socket.IO
     const io = req.app.get("io");
@@ -53,6 +56,8 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ✅ Get single chat by ID
 export const getChatById = async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -60,10 +65,10 @@ export const getChatById = async (req, res) => {
 
     const chat = await Chat.findOne({
       _id: chatId,
-      participants: userId, // ✅ ensures user is part of this chat
+      participants: userId, // ensure authorized access
     })
-      .populate("participants", "full_name email")
-      .populate("messages.sender", "full_name email");
+      .populate("participants", "full_name email isVerified verificationStatus")
+      .populate("messages.sender", "full_name email isVerified verificationStatus");
 
     if (!chat) {
       return res.status(404).json({ message: "Chat not found or unauthorized" });

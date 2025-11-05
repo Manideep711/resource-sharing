@@ -9,7 +9,9 @@ import chatRoutes from "./routes/chatRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
 import { Server } from "socket.io";
 import http from "http";
-
+import verifyRoutes from "./routes/verifyRoutes.js"; 
+import { fileURLToPath } from "url";
+import path from "path";
 // Initialize environment variables
 dotenv.config();
 
@@ -29,6 +31,9 @@ app.use(
 )
 
 app.use(express.json());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -36,7 +41,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/requests", requestRoutes);
-
+app.use("/api/verify", verifyRoutes);
 // Create HTTP server and wrap app
 const server = http.createServer(app);
 
